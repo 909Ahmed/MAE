@@ -60,9 +60,9 @@ class MLP(nn.Module):
         super(MLP, self).__init__()
         self.emd_dim = emd_dim
         self.ff = nn.Sequential(
-            nn.Linear(self.emd_dim, self.emd_dim * 2),
-            nn.LeakyReLU(0.2),
-            nn.Linear(self.emd_dim * 2, self.emd_dim)
+            nn.Linear(self.emd_dim, self.emd_dim * 4),
+            nn.GELU(),
+            nn.Linear(self.emd_dim * 4, self.emd_dim)
         )
         
     def forward(self, input_tensor): 
@@ -90,10 +90,10 @@ class Encoder(nn.Module):
     def __init__(self, 
                  
                 sampler,
-                num_encoders=12,
-                emd_dim=512,
-                d_model=512,
-                heads=4,
+                num_encoders=24,
+                emd_dim=1024,
+                d_model=1024,
+                heads=8,
                 p1=16,                
                 p2=16,
                 image_shape=(3, 224, 224)
@@ -125,10 +125,10 @@ class Decoder(nn.Module):
     def __init__(self, 
                 sampler,
                 num_patches,
-                num_decoders=4,
-                emd_dim=512,
-                d_model=512,
-                heads=4,
+                num_decoders=8,
+                emd_dim=1024,
+                d_model=1024,
+                heads=8,
                 p1=16,
                 p2=16,
         
@@ -143,7 +143,7 @@ class Decoder(nn.Module):
         self.mask_token = nn.Parameter(torch.zeros(1, 1, emd_dim))
         self.pos_emd = nn.Parameter(torch.randn(1, num_patches, emd_dim), requires_grad=True)
         self.decoders = nn.ModuleList([BLOCK(emd_dim, d_model, heads) for _ in range(num_decoders)])
-        c = 3 #fix this shit
+        c = 3 #fix this later
         self.image_dim = nn.Sequential(    
             nn.LayerNorm(emd_dim),
             nn.Linear(emd_dim, p1 * p2 * c)
@@ -172,7 +172,6 @@ class MAE(nn.Module):
     
     def __init__(self):
         super(MAE, self).__init__()
-        #hardest coder in the room lols
         self.sam = Sampler(196, 25)
         self.encoder = Encoder(self.sam)
         self.decoder = Decoder(self.sam, 196)
